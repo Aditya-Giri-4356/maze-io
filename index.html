@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>MAZE.IO — Multiplayer Maze Racing</title>
+  <meta name="description" content="Race through procedurally-generated mazes. Compete with friends in real-time. Arrow keys to navigate. Who finishes first?">
+  <meta name="theme-color" content="#000000">
+
+  <!-- Preconnect for font speed -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+
+  <!-- Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=League+Spartan:wght@400;500;700;800;900&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Anton&display=swap" rel="stylesheet">
+
+  <!-- Styles -->
+  <link rel="stylesheet" href="css/style.css">
+
+  <!-- Favicon -->
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🟥</text></svg>">
+</head>
+<body>
+  <!-- ============================================================
+       SCREEN: LOGIN
+       ============================================================ -->
+  <section id="screen-login" class="screen active">
+    <div class="logo-large">MAZE.io</div>
+
+    <div class="login-form">
+      <div class="form-group">
+        <label for="username-input">WHAT DO WE CALL YOU?</label>
+        <input type="text" id="username-input" maxlength="16" autocomplete="off" spellcheck="false" autofocus>
+      </div>
+
+      <div class="form-group">
+        <label for="room-code-input">ENTER YOUR CODE TO JOIN A ROOM</label>
+        <input type="text" id="room-code-input" maxlength="5" autocomplete="off" spellcheck="false" style="text-transform: uppercase;">
+      </div>
+
+      <p id="join-error" style="display:none; color: var(--accent); font-family: var(--font-body); font-size: 13px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase;"></p>
+
+      <a href="#" id="create-room-link" class="create-room-link">WANNA CREATE A ROOM?</a>
+      <p class="disclaimer">DONT WORRY YOUR DATA WONT BE SAVED!</p>
+    </div>
+
+    <div class="theme-toggle" aria-label="Toggle theme"></div>
+  </section>
+
+  <!-- ============================================================
+       SCREEN: ROOM CREATION
+       ============================================================ -->
+  <section id="screen-create-room" class="screen">
+    <div class="logo-large">MAZE.io</div>
+
+    <div class="room-creation-content">
+      <div class="room-code-display">
+        <span class="room-code-label">YOUR ROOM CODE</span>
+        <span id="room-code-value" class="room-code-value">-----</span>
+      </div>
+
+      <p class="room-code-label" style="opacity: 0.5;">SHARE THIS CODE WITH YOUR FRIENDS</p>
+
+      <p id="player-count" class="room-player-count">1 PLAYER(S) JOINED</p>
+
+      <button id="btn-start-game" class="btn-start-game">START GAME</button>
+      <button id="btn-back-login" class="btn-back">← BACK</button>
+    </div>
+
+    <div class="theme-toggle" aria-label="Toggle theme"></div>
+  </section>
+
+  <!-- ============================================================
+       SCREEN: GAME
+       ============================================================ -->
+  <section id="screen-game" class="screen">
+    <header class="game-header">
+      <div class="logo-small">MAZE.io</div>
+      <div id="level-display" class="level-display">LEVEL 1</div>
+      <div id="timer-display" class="timer-display">00.00.00</div>
+    </header>
+
+    <div class="maze-container">
+      <canvas id="maze-canvas"></canvas>
+    </div>
+
+    <footer class="game-footer">
+      <span id="logged-in-as" class="logged-in-as">LOGGED IN AS PLAYER</span>
+    </footer>
+
+    <!-- Mobile D-Pad -->
+    <div id="mobile-controls" class="mobile-controls">
+      <div class="dpad">
+        <button class="btn-up" data-direction="up" aria-label="Move up">▲</button>
+        <button class="btn-left" data-direction="left" aria-label="Move left">◄</button>
+        <button class="btn-right" data-direction="right" aria-label="Move right">►</button>
+        <button class="btn-down" data-direction="down" aria-label="Move down">▼</button>
+      </div>
+    </div>
+
+    <!-- Level Complete Overlay -->
+    <div id="level-overlay" class="level-overlay">
+      <div id="overlay-title" class="overlay-title">LEVEL 1 COMPLETE</div>
+      <div id="overlay-time" class="overlay-time">00.00.00</div>
+      <div id="overlay-subtitle" class="overlay-subtitle">NEXT LEVEL IN 3...</div>
+    </div>
+
+    <!-- Countdown Overlay -->
+    <div id="countdown-overlay" class="countdown-overlay">
+      <div id="countdown-number" class="countdown-number">3</div>
+    </div>
+
+    <div class="theme-toggle" aria-label="Toggle theme"></div>
+  </section>
+
+  <!-- ============================================================
+       SCREEN: LEADERBOARD
+       ============================================================ -->
+  <section id="screen-leaderboard" class="screen">
+    <div class="logo-large">MAZE.io</div>
+
+    <h2 class="leaderboard-subtitle">LEADERBOARD</h2>
+
+    <table class="leaderboard-table">
+      <thead>
+        <tr>
+          <th style="width: 60px;">#</th>
+          <th>NAME</th>
+          <th>TIME</th>
+        </tr>
+      </thead>
+      <tbody id="leaderboard-body">
+        <!-- Populated by JS -->
+      </tbody>
+    </table>
+
+    <p id="leaderboard-room-code" class="room-code-bottom">ROOM CODE: -----</p>
+
+    <button id="btn-play-again" class="btn-play-again">PLAY AGAIN</button>
+
+    <div class="theme-toggle" aria-label="Toggle theme"></div>
+  </section>
+
+  <!-- ============================================================
+       SCRIPTS (order matters: maze → room → game → app)
+       ============================================================ -->
+  <script src="js/maze.js"></script>
+  <script src="js/room.js"></script>
+  <script src="js/game.js"></script>
+  <script src="js/app.js"></script>
+
+</body>
+</html>

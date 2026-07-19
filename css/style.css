@@ -1,0 +1,710 @@
+/* ============================================================
+   MAZE.IO — Design System
+   ============================================================ */
+
+/* --- Font Imports --- */
+@import url('https://fonts.googleapis.com/css2?family=League+Spartan:wght@400;500;700;800;900&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Anton&display=swap');
+
+@font-face {
+  font-family: 'GULFS Display';
+  src: url('../fonts/GULFSDisplay.woff2') format('woff2'),
+       url('../fonts/GULFSDisplay.woff') format('woff'),
+       url('../fonts/GULFSDisplay.ttf') format('truetype'),
+       url('../fonts/GULFSDisplay.otf') format('opentype');
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* --- Design Tokens --- */
+:root {
+  --bg: #000000;
+  --fg: #FFFFFF;
+  --accent: #FF2D2D;
+  --surface: #1a1a1a;
+  --table-header: #d9d9d9;
+  --table-header-fg: #000000;
+  --table-border: #FFFFFF;
+  --input-bg: #FFFFFF;
+  --input-fg: #000000;
+  --wall-color: #FFFFFF;
+  --path-color: #000000;
+
+  --font-display: 'GULFS Display', 'Anton', sans-serif;
+  --font-body: 'League Spartan', sans-serif;
+  --transition-speed: 0.3s;
+}
+
+[data-theme="light"] {
+  --bg: #FFFFFF;
+  --fg: #000000;
+  --surface: #f5f5f5;
+  --table-header: #333333;
+  --table-header-fg: #FFFFFF;
+  --table-border: #000000;
+  --input-bg: #000000;
+  --input-fg: #FFFFFF;
+  --wall-color: #000000;
+  --path-color: #FFFFFF;
+}
+
+/* --- Reset --- */
+*, *::before, *::after {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html {
+  font-size: 16px;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  background-color: var(--bg);
+  color: var(--fg);
+  font-family: var(--font-body);
+  min-height: 100vh;
+  overflow: hidden;
+  transition: background-color var(--transition-speed) ease,
+              color var(--transition-speed) ease;
+  user-select: none;
+}
+
+/* ============================================================
+   Screen System
+   ============================================================ */
+.screen {
+  display: none;
+  width: 100vw;
+  height: 100vh;
+  position: fixed;
+  top: 0;
+  left: 0;
+  flex-direction: column;
+  align-items: center;
+  z-index: 1;
+}
+
+.screen.active {
+  display: flex;
+}
+
+/* ============================================================
+   Common Elements
+   ============================================================ */
+
+/* Logo */
+.logo-large {
+  font-family: var(--font-display);
+  font-size: clamp(56px, 9vw, 100px);
+  font-weight: 900;
+  text-transform: uppercase;
+  color: var(--fg);
+  text-align: center;
+  line-height: 1.1;
+  display: block;
+  width: fit-content;
+  margin-inline: auto;
+  view-transition-name: main-logo;
+}
+
+.logo-small {
+  font-family: var(--font-display);
+  font-size: clamp(24px, 3.5vw, 44px);
+  font-weight: 900;
+  text-transform: uppercase;
+  color: var(--fg);
+  line-height: 1;
+  display: inline-block;
+  width: fit-content;
+  view-transition-name: main-logo;
+}
+
+/* First load slide-in only on the login screen */
+#screen-login.active .logo-large {
+  animation: logoSlideInFirst 1s cubic-bezier(0.2, 0.8, 0.2, 1) backwards;
+}
+
+@keyframes logoSlideInFirst {
+  0% { 
+    transform: translateX(-100vw); 
+    opacity: 0; 
+  }
+  60% {
+    transform: translateX(20px);
+    opacity: 1;
+  }
+  100% { 
+    transform: translateX(0); 
+    opacity: 1; 
+  }
+}
+
+/* Smooth morphing between states */
+::view-transition-group(main-logo) {
+  animation-duration: 0.7s;
+  animation-timing-function: cubic-bezier(0.25, 1, 0.5, 1);
+}
+
+/* Theme Toggle (Moon/Sun) */
+.theme-toggle {
+  position: fixed;
+  bottom: 28px;
+  right: 36px;
+  width: 40px;
+  height: 40px;
+  cursor: pointer;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.3s ease;
+}
+
+.theme-toggle:hover {
+  transform: scale(1.15);
+}
+
+.theme-toggle svg {
+  width: 36px;
+  height: 36px;
+  fill: var(--fg);
+  transition: fill var(--transition-speed) ease;
+}
+
+/* ============================================================
+   Screen: Login
+   ============================================================ */
+#screen-login {
+  justify-content: center;
+  gap: 0;
+  padding: 40px 20px;
+}
+
+#screen-login .logo-large {
+  margin-bottom: 60px;
+}
+
+.login-form {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 36px;
+  width: 100%;
+  max-width: 500px;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+}
+
+.form-group label {
+  font-family: var(--font-body);
+  font-size: clamp(11px, 1.4vw, 15px);
+  font-weight: 700;
+  letter-spacing: 2.5px;
+  text-transform: uppercase;
+  color: var(--fg);
+  text-align: center;
+}
+
+.form-group input {
+  width: 100%;
+  max-width: 420px;
+  height: 50px;
+  border-radius: 30px;
+  border: none;
+  background-color: var(--input-bg);
+  color: var(--input-fg);
+  font-family: var(--font-body);
+  font-size: 16px;
+  font-weight: 600;
+  padding: 0 24px;
+  outline: none;
+  transition: box-shadow 0.2s ease, transform 0.15s ease;
+  text-align: center;
+  letter-spacing: 1px;
+}
+
+.form-group input:focus {
+  box-shadow: 0 0 0 3px var(--accent);
+  transform: scale(1.02);
+}
+
+.create-room-link {
+  font-family: var(--font-body);
+  font-size: clamp(12px, 1.3vw, 15px);
+  font-weight: 700;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--accent);
+  cursor: pointer;
+  text-decoration: none;
+  transition: opacity 0.2s ease;
+  margin-top: 10px;
+}
+
+.create-room-link:hover {
+  opacity: 0.75;
+}
+
+.disclaimer {
+  font-family: var(--font-body);
+  font-size: clamp(10px, 1.2vw, 14px);
+  font-weight: 700;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--fg);
+  text-align: center;
+  opacity: 0.9;
+}
+
+/* ============================================================
+   Screen: Room Creation
+   ============================================================ */
+#screen-create-room {
+  justify-content: center;
+  gap: 0;
+  padding: 40px 20px;
+}
+
+#screen-create-room .logo-large {
+  margin-bottom: 50px;
+}
+
+.room-creation-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 28px;
+  width: 100%;
+  max-width: 500px;
+}
+
+.room-code-display {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+}
+
+.room-code-label {
+  font-family: var(--font-body);
+  font-size: clamp(11px, 1.3vw, 14px);
+  font-weight: 700;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  color: var(--fg);
+  opacity: 0.8;
+}
+
+.room-code-value {
+  font-family: var(--font-display);
+  font-size: clamp(48px, 7vw, 80px);
+  font-weight: 900;
+  letter-spacing: 8px;
+  color: var(--fg);
+}
+
+.room-player-count {
+  font-family: var(--font-body);
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--fg);
+  opacity: 0.7;
+}
+
+.btn-start-game {
+  font-family: var(--font-body);
+  font-size: 16px;
+  font-weight: 800;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  color: var(--bg);
+  background-color: var(--fg);
+  border: none;
+  border-radius: 30px;
+  padding: 14px 48px;
+  cursor: pointer;
+  transition: transform 0.15s ease, box-shadow 0.2s ease;
+  margin-top: 16px;
+}
+
+.btn-start-game:hover {
+  transform: scale(1.05);
+  box-shadow: 0 4px 20px rgba(255, 255, 255, 0.15);
+}
+
+.btn-start-game:active {
+  transform: scale(0.97);
+}
+
+.btn-back {
+  font-family: var(--font-body);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--fg);
+  background: none;
+  border: none;
+  cursor: pointer;
+  opacity: 0.5;
+  transition: opacity 0.2s ease;
+  margin-top: 8px;
+}
+
+.btn-back:hover {
+  opacity: 1;
+}
+
+/* ============================================================
+   Screen: Game
+   ============================================================ */
+#screen-game {
+  justify-content: space-between;
+  padding: 0;
+}
+
+.game-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 24px 36px 0 36px;
+  flex-shrink: 0;
+}
+
+.level-display {
+  font-family: var(--font-body);
+  font-size: clamp(16px, 2.2vw, 26px);
+  font-weight: 800;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  color: var(--fg);
+}
+
+.timer-display {
+  font-family: var(--font-display);
+  font-size: clamp(24px, 3.5vw, 44px);
+  font-weight: 900;
+  letter-spacing: 2px;
+  color: var(--fg);
+  min-width: 180px;
+  text-align: right;
+}
+
+.maze-container {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  padding: 10px;
+}
+
+#maze-canvas {
+  display: block;
+  max-width: 100%;
+  max-height: 100%;
+}
+
+.game-footer {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  padding: 0 36px 24px 36px;
+  flex-shrink: 0;
+}
+
+.logged-in-as {
+  font-family: var(--font-body);
+  font-size: clamp(10px, 1.2vw, 13px);
+  font-weight: 700;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--fg);
+  opacity: 0.9;
+}
+
+/* Level Complete Overlay */
+.level-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(0, 0, 0, 0.85);
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 20px;
+  z-index: 50;
+  animation: fadeIn 0.3s ease;
+}
+
+.level-overlay.active {
+  display: flex;
+}
+
+.level-overlay .overlay-title {
+  font-family: var(--font-display);
+  font-size: clamp(36px, 6vw, 72px);
+  font-weight: 900;
+  color: #FFFFFF;
+  letter-spacing: 3px;
+}
+
+.level-overlay .overlay-time {
+  font-family: var(--font-display);
+  font-size: clamp(20px, 3vw, 36px);
+  color: #FFFFFF;
+  opacity: 0.8;
+}
+
+.level-overlay .overlay-subtitle {
+  font-family: var(--font-body);
+  font-size: clamp(12px, 1.5vw, 18px);
+  font-weight: 700;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.6);
+  margin-top: 10px;
+}
+
+/* ============================================================
+   Screen: Leaderboard
+   ============================================================ */
+#screen-leaderboard {
+  justify-content: center;
+  gap: 0;
+  padding: 40px 20px;
+}
+
+#screen-leaderboard .logo-large {
+  margin-bottom: 24px;
+}
+
+.leaderboard-subtitle {
+  font-family: var(--font-body);
+  font-size: clamp(12px, 1.5vw, 16px);
+  font-weight: 700;
+  letter-spacing: 4px;
+  text-transform: uppercase;
+  color: var(--fg);
+  margin-bottom: 30px;
+}
+
+.leaderboard-table {
+  width: 90%;
+  max-width: 580px;
+  border-collapse: collapse;
+  border: 2px solid var(--table-border);
+}
+
+.leaderboard-table thead th {
+  font-family: var(--font-body);
+  font-size: clamp(16px, 2vw, 22px);
+  font-weight: 800;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  padding: 16px 24px;
+  background-color: var(--table-header);
+  color: var(--table-header-fg);
+  border: 2px solid var(--table-border);
+  text-align: center;
+}
+
+.leaderboard-table tbody td {
+  font-family: var(--font-body);
+  font-size: clamp(14px, 1.8vw, 20px);
+  font-weight: 700;
+  padding: 18px 24px;
+  text-align: center;
+  color: var(--fg);
+  border: 2px solid var(--table-border);
+  background-color: var(--bg);
+}
+
+.leaderboard-table tbody tr:first-child td {
+  color: var(--accent);
+}
+
+.room-code-bottom {
+  font-family: var(--font-body);
+  font-size: clamp(11px, 1.2vw, 14px);
+  font-weight: 700;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  color: var(--fg);
+  opacity: 0.7;
+  margin-top: 40px;
+}
+
+.btn-play-again {
+  font-family: var(--font-body);
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--accent);
+  background: none;
+  border: none;
+  cursor: pointer;
+  margin-top: 18px;
+  transition: opacity 0.2s ease;
+}
+
+.btn-play-again:hover {
+  opacity: 0.7;
+}
+
+/* ============================================================
+   Mobile Controls
+   ============================================================ */
+.mobile-controls {
+  display: none;
+  position: fixed;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 40;
+  gap: 0;
+}
+
+.mobile-controls .dpad {
+  display: grid;
+  grid-template-areas:
+    ".  up  ."
+    "left . right"
+    ".  down .";
+  grid-template-columns: 52px 52px 52px;
+  grid-template-rows: 52px 52px 52px;
+  gap: 4px;
+}
+
+.mobile-controls button {
+  width: 52px;
+  height: 52px;
+  border: 2px solid var(--fg);
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--fg);
+  font-size: 20px;
+  border-radius: 10px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  -webkit-tap-highlight-color: transparent;
+  transition: background 0.1s ease;
+}
+
+.mobile-controls button:active {
+  background: rgba(255, 255, 255, 0.25);
+}
+
+.mobile-controls .btn-up    { grid-area: up; }
+.mobile-controls .btn-down  { grid-area: down; }
+.mobile-controls .btn-left  { grid-area: left; }
+.mobile-controls .btn-right { grid-area: right; }
+
+@media (max-width: 768px), (hover: none) and (pointer: coarse) {
+  .mobile-controls {
+    display: flex;
+  }
+
+  .maze-container {
+    padding-bottom: 180px;
+  }
+}
+
+/* ============================================================
+   Animations
+   ============================================================ */
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(30px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes pulse {
+  0%, 100% { transform: scale(1); }
+  50%      { transform: scale(1.05); }
+}
+
+@keyframes countdownPulse {
+  0%   { transform: scale(0.5); opacity: 0; }
+  50%  { transform: scale(1.2); opacity: 1; }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+.screen.active {
+  animation: fadeIn 0.35s ease;
+}
+
+/* ============================================================
+   Countdown Overlay
+   ============================================================ */
+.countdown-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(0, 0, 0, 0.9);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  z-index: 60;
+}
+
+.countdown-overlay.active {
+  display: flex;
+}
+
+.countdown-number {
+  font-family: var(--font-display);
+  font-size: clamp(80px, 15vw, 180px);
+  font-weight: 900;
+  color: #FFFFFF;
+  animation: countdownPulse 0.8s ease;
+}
+
+/* ============================================================
+   Scrollbar (for leaderboard overflow)
+   ============================================================ */
+::-webkit-scrollbar {
+  width: 6px;
+}
+::-webkit-scrollbar-track {
+  background: var(--bg);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--fg);
+  border-radius: 3px;
+}
+
+/* ============================================================
+   Focus Styles (a11y)
+   ============================================================ */
+input:focus-visible,
+button:focus-visible,
+a:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+}
