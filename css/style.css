@@ -735,9 +735,93 @@ body {
   .mobile-controls {
     display: flex;
   }
+}
+
+/* ---- Mobile / Small Screen ---- */
+@media (max-width: 768px) {
+  /* Game header: tighter on mobile */
+  .game-header {
+    padding: 12px 16px 0 16px;
+  }
+
+  .timer-display {
+    min-width: auto;
+  }
+
+  /* Stack maze and sidebar vertically */
+  .game-body {
+    flex-direction: column;
+    align-items: center;
+  }
 
   .maze-container {
-    padding-bottom: 180px;
+    padding: 6px;
+    flex: none;
+    width: 100%;
+    max-height: 55vh;
+  }
+
+  .players-sidebar {
+    width: 100%;
+    flex-direction: column;
+    padding: 8px 16px 0 16px;
+    max-height: 120px;
+    overflow-y: auto;
+    border-top: 1px solid var(--surface);
+  }
+
+  .sidebar-title {
+    margin-bottom: 6px;
+  }
+
+  .sidebar-player-list {
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: 4px;
+  }
+
+  .sidebar-player-list li {
+    font-size: 11px;
+    padding: 5px 10px;
+  }
+
+  /* Game footer: tighter */
+  .game-footer {
+    padding: 0 16px 10px 16px;
+  }
+
+  .logged-in-as {
+    font-size: 10px;
+  }
+
+  /* Login screen */
+  #screen-login .logo-large {
+    margin-bottom: 30px;
+  }
+
+  .login-form {
+    gap: 24px;
+  }
+
+  /* Room creation */
+  .room-code-value {
+    font-size: clamp(40px, 10vw, 60px) !important;
+    letter-spacing: 10px !important;
+  }
+
+  /* Host dashboard */
+  #screen-host {
+    padding: 20px 16px;
+  }
+
+  .host-leaderboard-wrap {
+    max-width: 100%;
+  }
+
+  .leaderboard-table th,
+  .leaderboard-table td {
+    font-size: 12px;
+    padding: 10px 8px;
   }
 }
 
