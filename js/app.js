@@ -10,6 +10,7 @@
   const screens = {
     login: document.getElementById('screen-login'),
     createRoom: document.getElementById('screen-create-room'),
+    host: document.getElementById('screen-host'),
     game: document.getElementById('screen-game'),
     leaderboard: document.getElementById('screen-leaderboard'),
   };
@@ -26,6 +27,11 @@
   const startGameBtn = document.getElementById('btn-start-game');
   const backToLoginBtn = document.getElementById('btn-back-login');
 
+  // Host dashboard
+  const hostRoomCode = document.getElementById('host-room-code');
+  const hostLeaderboardBody = document.getElementById('host-leaderboard-body');
+  const btnHostBack = document.getElementById('btn-host-back');
+
   // Game
   const mazeCanvas = document.getElementById('maze-canvas');
   const levelDisplay = document.getElementById('level-display');
@@ -37,6 +43,7 @@
   const overlaySubtitle = document.getElementById('overlay-subtitle');
   const countdownOverlay = document.getElementById('countdown-overlay');
   const countdownNumber = document.getElementById('countdown-number');
+  const sidebarPlayerList = document.getElementById('sidebar-player-list');
 
   // Leaderboard
   const leaderboardBody = document.getElementById('leaderboard-body');
@@ -64,7 +71,6 @@
         }
       });
     } else {
-      // Fallback for browsers that don't support View Transitions
       Object.values(screens).forEach((s) => s.classList.remove('active'));
       if (screens[name]) {
         screens[name].classList.add('active');
@@ -86,7 +92,6 @@
     localStorage.setItem('maze_io_theme', next);
     updateThemeIcons(next);
 
-    // Refresh game canvas if active
     if (gameEngine) {
       gameEngine.refresh();
     }
@@ -101,22 +106,28 @@
     });
   }
 
+  // ---- Utility ----
+  function formatTime(ms) {
+    const totalSeconds = ms / 1000;
+    const minutes = Math.floor(totalSeconds / 60);
+    const seconds = Math.floor(totalSeconds % 60);
+    const centiseconds = Math.floor((ms % 1000) / 10);
+    return `${String(minutes).padStart(2, '0')}.${String(seconds).padStart(2, '0')}.${String(centiseconds).padStart(2, '0')}`;
+  }
+
   // ---- Login Screen ----
   function initLogin() {
-    // Check for existing session
     const session = window.roomManager.getSession();
     if (session) {
       currentPlayerName = session.playerName;
       currentRoomCode = session.roomCode;
     }
 
-    // Prepopulate username if previously saved
     const savedName = localStorage.getItem('maze_io_username');
     if (savedName) {
       usernameInput.value = savedName;
     }
 
-    // Join room on Enter in code input
     roomCodeInput.addEventListener('keydown', (e) => {
       if (e.key === 'Enter') {
         e.preventDefault();
@@ -124,7 +135,6 @@
       }
     });
 
-    // Also allow Enter on username field to focus code field
     usernameInput.addEventListener('keydown', (e) => {
       if (e.key === 'Enter') {
         e.preventDefault();
@@ -136,7 +146,6 @@
       }
     });
 
-    // Create room link
     createRoomLink.addEventListener('click', (e) => {
       e.preventDefault();
       const name = usernameInput.value.trim();
@@ -195,7 +204,9 @@
     localStorage.setItem('maze_io_username', name);
     currentPlayerName = name;
     currentRoomCode = code;
-    startGame();
+    
+    // Non-host players wait for the host to start the game
+    waitForGameStart();
   }
 
   // ---- Room Creation ----
@@ -210,11 +221,43 @@
 
     showScreen('createRoom');
 
-    // Listen for new players joining
+    // Listen for new players joining (update the count live)
     window.roomManager.on('player_joined', (data) => {
       if (data.code === currentRoomCode) {
-        const count = window.roomManager.getPlayerCount(currentRoomCode);
-        playerCountDisplay.textContent = `${count} PLAYER(S) JOINED`;
+        playerCountDisplay.textContent = `${data.playerCount} PLAYER(S) JOINED`;
+      }
+    });
+
+    window.roomManager.on('player_left', (data) => {
+      if (data.code === currentRoomCode) {
+        playerCountDisplay.textContent = `${data.playerCount} PLAYER(S) JOINED`;
+      }
+    });
+  }
+
+  // ---- Wait for host to start (non-host players) ----
+  function waitForGameStart() {
+    showScreen('createRoom');
+    roomCodeDisplay.textContent = currentRoomCode;
+    const room = window.roomManager.getRoomState();
+    const count = room ? room.players.length : 1;
+    playerCountDisplay.textContent = `${count} PLAYER(S) JOINED`;
+
+    // Hide the start button for non-hosts
+    startGameBtn.style.display = 'none';
+
+    // Listen for host starting the game
+    const onGameStarted = () => {
+      window.roomManager.off('game_started', onGameStarted);
+      startGameBtn.style.display = ''; // restore for next time
+      startGame();
+    };
+    window.roomManager.on('game_started', onGameStarted);
+
+    // Keep player count live
+    window.roomManager.on('player_joined', (data) => {
+      if (data.code === currentRoomCode) {
+        playerCountDisplay.textContent = `${data.playerCount} PLAYER(S) JOINED`;
       }
     });
   }
@@ -226,7 +269,6 @@
     timerDisplay.textContent = '00.00.00';
     levelDisplay.textContent = 'LEVEL 1';
 
-    // Show mobile controls on touch devices
     if ('ontouchstart' in window) {
       mobileControls.style.display = 'flex';
     }
@@ -240,6 +282,7 @@
 
     gameEngine.onLevelChange = (level) => {
       levelDisplay.textContent = `LEVEL ${level}`;
+      window.roomManager.sendLevelUpdate(level);
     };
 
     gameEngine.onLevelComplete = (level, levelTime) => {
@@ -262,9 +305,49 @@
 
     gameEngine.init();
 
+    // Send initial level update
+    window.roomManager.sendLevelUpdate(1);
+
+    // Update sidebar with players
+    updateSidebar();
+    window.roomManager.on('room_state_update', updateSidebar);
+
     // Countdown before enabling input
     runCountdown(() => {
       gameEngine.enableInput();
+    });
+  }
+
+  // ---- Players Sidebar ----
+  function updateSidebar() {
+    const room = window.roomManager.getRoomState();
+    if (!room || !sidebarPlayerList) return;
+
+    sidebarPlayerList.innerHTML = '';
+    room.players.forEach((p) => {
+      const li = document.createElement('li');
+      const isYou = p.name === currentPlayerName;
+      const level = room.playerLevels ? room.playerLevels[p.name] : null;
+      const score = room.scores ? room.scores[p.name] : null;
+
+      let statusText = 'WAITING';
+      if (score) {
+        statusText = formatTime(score.totalTime);
+        li.classList.add('is-finished');
+      } else if (level === 'finished') {
+        statusText = 'DONE';
+        li.classList.add('is-finished');
+      } else if (typeof level === 'number') {
+        statusText = `LVL ${level}`;
+      }
+
+      if (isYou) li.classList.add('is-you');
+
+      li.innerHTML = `
+        <span>${p.name.toUpperCase()}</span>
+        <span class="player-status">${statusText}</span>
+      `;
+      sidebarPlayerList.appendChild(li);
     });
   }
 
@@ -276,7 +359,6 @@
       if (count > 0) {
         countdownNumber.textContent = count;
         countdownNumber.style.animation = 'none';
-        // Force reflow
         void countdownNumber.offsetWidth;
         countdownNumber.style.animation = 'countdownPulse 0.8s ease';
         count--;
@@ -321,6 +403,9 @@
     overlaySubtitle.textContent = 'LOADING LEADERBOARD...';
     levelOverlay.classList.add('active');
 
+    // Clean up sidebar listener
+    window.roomManager.off('room_state_update', updateSidebar);
+
     setTimeout(() => {
       levelOverlay.classList.remove('active');
       showLeaderboard();
@@ -331,7 +416,21 @@
   function showLeaderboard() {
     showScreen('leaderboard');
 
-    const entries = window.roomManager.getLeaderboard(currentRoomCode);
+    // Fetch fresh room state before rendering
+    window.roomManager.fetchRoomState(currentRoomCode);
+
+    // Small delay to let the fresh state arrive, then render
+    setTimeout(renderLeaderboard, 300);
+
+    // Listen for further score updates
+    const onScoreUpdate = () => {
+      renderLeaderboard();
+    };
+    window.roomManager.on('room_state_update', onScoreUpdate);
+  }
+
+  function renderLeaderboard() {
+    const entries = window.roomManager.getLeaderboard();
     leaderboardBody.innerHTML = '';
 
     if (entries.length === 0) {
@@ -354,13 +453,76 @@
     }
 
     leaderboardRoomCode.textContent = `ROOM CODE: ${currentRoomCode}`;
+  }
 
-    // Listen for new scores
-    window.roomManager.on('score_update', (data) => {
-      if (data.code === currentRoomCode) {
-        // Refresh leaderboard
-        showLeaderboard();
+  // ---- Host Dashboard ----
+  function showHostDashboard() {
+    showScreen('host');
+    hostRoomCode.textContent = `ROOM: ${currentRoomCode}`;
+    renderHostLeaderboard();
+
+    // Listen for live updates
+    window.roomManager.on('room_state_update', renderHostLeaderboard);
+    window.roomManager.on('score_update', renderHostLeaderboard);
+  }
+
+  function renderHostLeaderboard() {
+    const room = window.roomManager.getRoomState();
+    if (!room || !hostLeaderboardBody) return;
+
+    hostLeaderboardBody.innerHTML = '';
+
+    // Build a combined list: all players, sorted by finished (fastest first), then playing, then waiting
+    const players = room.players.map((p) => {
+      const score = room.scores ? room.scores[p.name] : null;
+      const level = room.playerLevels ? room.playerLevels[p.name] : null;
+      return { name: p.name, score, level };
+    });
+
+    // Sort: finished players by time first, then playing (by level desc), then waiting
+    players.sort((a, b) => {
+      if (a.score && b.score) return a.score.totalTime - b.score.totalTime;
+      if (a.score) return -1;
+      if (b.score) return 1;
+      if (typeof a.level === 'number' && typeof b.level === 'number') return b.level - a.level;
+      if (typeof a.level === 'number') return -1;
+      if (typeof b.level === 'number') return 1;
+      return 0;
+    });
+
+    let rank = 0;
+    players.forEach((p) => {
+      const row = document.createElement('tr');
+      let statusText = 'WAITING';
+      let timeText = '--';
+      let rankText = '--';
+
+      if (p.score) {
+        rank++;
+        rankText = rank;
+        statusText = 'FINISHED';
+        timeText = formatTime(p.score.totalTime);
+        row.style.color = '#22c55e';
+      } else if (p.level === 'finished') {
+        rank++;
+        rankText = rank;
+        statusText = 'FINISHED';
+        row.style.color = '#22c55e';
+      } else if (typeof p.level === 'number') {
+        statusText = `LEVEL ${p.level}`;
       }
+
+      if (p.name === currentPlayerName) {
+        row.style.color = 'var(--accent)';
+      }
+
+      row.innerHTML = `
+        <td>${rankText}</td>
+        <td>${p.name.toUpperCase()}</td>
+        <td>${statusText}</td>
+        <td>${timeText}</td>
+      `;
+      hostLeaderboardBody.appendChild(row);
     });
   }
 
@@ -388,10 +550,34 @@
   // ---- Start Game Button (Room Creation) ----
   function initRoomCreation() {
     startGameBtn.addEventListener('click', () => {
-      startGame();
+      if (window.roomManager.isHost) {
+        // Host: broadcast start to all players, then go to host dashboard
+        window.roomManager.startGame();
+        showHostDashboard();
+      } else {
+        startGame();
+      }
     });
 
     backToLoginBtn.addEventListener('click', () => {
+      if (currentRoomCode) {
+        window.roomManager.leaveRoom(currentRoomCode, currentPlayerName);
+        currentRoomCode = '';
+      }
+      startGameBtn.style.display = ''; // restore visibility
+      showScreen('login');
+    });
+  }
+
+  // ---- Host Dashboard Back Button ----
+  function initHostDashboard() {
+    btnHostBack.addEventListener('click', () => {
+      window.roomManager.off('room_state_update', renderHostLeaderboard);
+      window.roomManager.off('score_update', renderHostLeaderboard);
+      if (currentRoomCode) {
+        window.roomManager.leaveRoom(currentRoomCode, currentPlayerName);
+        currentRoomCode = '';
+      }
       showScreen('login');
     });
   }
@@ -399,7 +585,6 @@
   // ---- Play Again ----
   function initLeaderboard() {
     playAgainBtn.addEventListener('click', () => {
-      // Clean up old game
       if (gameEngine) {
         gameEngine.destroy();
         gameEngine = null;
@@ -418,15 +603,14 @@
     initTheme();
     initLogin();
     initRoomCreation();
+    initHostDashboard();
     initMobileControls();
     initLeaderboard();
 
-    // Theme toggle for all instances
     themeToggles.forEach((toggle) => {
       toggle.addEventListener('click', toggleTheme);
     });
 
-    // Start on login screen
     showScreen('login');
     usernameInput.focus();
   }

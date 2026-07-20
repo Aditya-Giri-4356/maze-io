@@ -44,9 +44,26 @@ function broadcastToRoom(code, type, data) {
   });
 }
 
+// Broadcast the full room state (scores, players, levels) to everyone in the room
+function broadcastRoomState(code) {
+  const room = rooms[code];
+  if (!room) return;
+  const safeRoom = getSafeRoom(room);
+  room.clients.forEach((client) => {
+    if (client.ws.readyState === WebSocket.OPEN) {
+      client.ws.send(JSON.stringify({ type: 'room_state_update', data: { room: safeRoom } }));
+    }
+  });
+}
+
+// Helper: Strip out the raw WebSocket clients before sending room state to frontend
+function getSafeRoom(room) {
+  const { clients, ...safeRoom } = room;
+  return safeRoom;
+}
+
 // When a new WebSocket connection is established
 wss.on('connection', (ws) => {
-  // Store the current room and player name for this socket to handle disconnects
   let currentRoomCode = null;
   let currentPlayerName = null;
 
@@ -65,6 +82,7 @@ wss.on('connection', (ws) => {
           hostName: playerName,
           players: [{ name: playerName, joinedAt: Date.now() }],
           scores: {},
+          playerLevels: {},   // track each player's current level
           totalLevels: totalLevels || 5,
           createdAt: Date.now(),
           status: 'waiting',
@@ -76,7 +94,7 @@ wss.on('connection', (ws) => {
         currentPlayerName = playerName;
 
         ws.send(JSON.stringify({ type: 'room_created', data: { room: getSafeRoom(newRoom) } }));
-        broadcastToRoom(code, 'player_joined', { code, playerName });
+        broadcastToRoom(code, 'player_joined', { code, playerName, playerCount: newRoom.players.length });
       } 
       
       else if (type === 'join_room') {
@@ -105,12 +123,35 @@ wss.on('connection', (ws) => {
         currentPlayerName = playerName;
 
         ws.send(JSON.stringify({ type: 'room_joined', data: { room: getSafeRoom(room) } }));
-        broadcastToRoom(upperCode, 'player_joined', { code: upperCode, playerName });
+        broadcastToRoom(upperCode, 'player_joined', { code: upperCode, playerName, playerCount: room.players.length });
+        broadcastRoomState(upperCode);
       } 
       
       else if (type === 'leave_room') {
         leaveCurrentRoom();
       } 
+
+      else if (type === 'start_game') {
+        // Host signals all players to start the game
+        if (!currentRoomCode) return;
+        const room = rooms[currentRoomCode];
+        if (!room) return;
+        if (room.hostName !== currentPlayerName) return; // only host can start
+        
+        room.status = 'playing';
+        broadcastToRoom(currentRoomCode, 'game_started', { code: currentRoomCode });
+        broadcastRoomState(currentRoomCode);
+      }
+
+      else if (type === 'level_update') {
+        // A player broadcasts what level they are currently on
+        if (!currentRoomCode || !currentPlayerName) return;
+        const room = rooms[currentRoomCode];
+        if (!room) return;
+
+        room.playerLevels[currentPlayerName] = data.level;
+        broadcastRoomState(currentRoomCode);
+      }
       
       else if (type === 'submit_score') {
         if (!currentRoomCode || !currentPlayerName) return;
@@ -123,12 +164,15 @@ wss.on('connection', (ws) => {
             totalTime,
             completedAt: Date.now()
           };
-          // Broadcast to everyone in the room that a score was updated
+          room.playerLevels[currentPlayerName] = 'finished';
+
+          // Broadcast full room state so everyone can rebuild leaderboard
           broadcastToRoom(currentRoomCode, 'score_update', { 
             code: currentRoomCode, 
             playerName: currentPlayerName, 
             totalTime 
           });
+          broadcastRoomState(currentRoomCode);
         }
       }
       
@@ -153,18 +197,16 @@ wss.on('connection', (ws) => {
     if (!currentRoomCode || !currentPlayerName) return;
     const room = rooms[currentRoomCode];
     if (room) {
-      // Remove player
       room.players = room.players.filter(p => p.name !== currentPlayerName);
-      // Remove client socket
       for (let client of room.clients) {
         if (client.ws === ws || client.playerName === currentPlayerName) {
           room.clients.delete(client);
         }
       }
       
-      broadcastToRoom(currentRoomCode, 'player_left', { code: currentRoomCode, playerName: currentPlayerName });
+      broadcastToRoom(currentRoomCode, 'player_left', { code: currentRoomCode, playerName: currentPlayerName, playerCount: room.players.length });
+      broadcastRoomState(currentRoomCode);
       
-      // If room is empty, delete it
       if (room.players.length === 0) {
         delete rooms[currentRoomCode];
       }
@@ -174,13 +216,7 @@ wss.on('connection', (ws) => {
   }
 });
 
-// Helper: Strip out the raw WebSocket clients before sending room state to frontend
-function getSafeRoom(room) {
-  const { clients, ...safeRoom } = room;
-  return safeRoom;
-}
-
-// Cleanup old rooms periodically (e.g. every hour)
+// Cleanup old rooms periodically
 setInterval(() => {
   const now = Date.now();
   const maxAge = 24 * 60 * 60 * 1000;

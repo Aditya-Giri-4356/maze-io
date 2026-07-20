@@ -72,6 +72,35 @@
   </section>
 
   <!-- ============================================================
+       SCREEN: HOST DASHBOARD
+       ============================================================ -->
+  <section id="screen-host" class="screen">
+    <div class="logo-large">MAZE.io</div>
+
+    <h2 class="host-subtitle">HOST DASHBOARD</h2>
+    <p id="host-room-code" class="host-room-code">ROOM: -----</p>
+
+    <div class="host-leaderboard-wrap">
+      <table class="leaderboard-table">
+        <thead>
+          <tr>
+            <th style="width: 50px;">#</th>
+            <th>PLAYER</th>
+            <th>STATUS</th>
+            <th>TIME</th>
+          </tr>
+        </thead>
+        <tbody id="host-leaderboard-body">
+          <!-- Populated by JS -->
+        </tbody>
+      </table>
+    </div>
+
+    <button id="btn-host-back" class="btn-back">LEAVE ROOM</button>
+    <div class="theme-toggle" aria-label="Toggle theme"></div>
+  </section>
+
+  <!-- ============================================================
        SCREEN: GAME
        ============================================================ -->
   <section id="screen-game" class="screen">
@@ -81,8 +110,17 @@
       <div id="timer-display" class="timer-display">00.00.00</div>
     </header>
 
-    <div class="maze-container">
-      <canvas id="maze-canvas"></canvas>
+    <div class="game-body">
+      <div class="maze-container">
+        <canvas id="maze-canvas"></canvas>
+      </div>
+
+      <aside id="players-sidebar" class="players-sidebar">
+        <h3 class="sidebar-title">PLAYERS</h3>
+        <ul id="sidebar-player-list" class="sidebar-player-list">
+          <!-- Populated by JS -->
+        </ul>
+      </aside>
     </div>
 
     <footer class="game-footer">

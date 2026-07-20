@@ -11,6 +11,7 @@ class RoomManager {
     this._listeners = {};
     this.connected = false;
     this.cachedRoomState = null;
+    this.isHost = false;
     this._initWebSocket();
   }
 
@@ -28,7 +29,8 @@ class RoomManager {
     this.ws.onmessage = (event) => {
       try {
         const msg = JSON.parse(event.data);
-        if (msg.type === 'room_created' || msg.type === 'room_joined' || msg.type === 'room_state') {
+        // Keep room state cache fresh on any room-related update
+        if (msg.data && msg.data.room) {
           this.cachedRoomState = msg.data.room;
         }
         this._emit(msg.type, msg.data);
@@ -41,7 +43,6 @@ class RoomManager {
       console.log('Disconnected from WebSocket server');
       this.connected = false;
       this._emit('disconnected');
-      // Attempt reconnect after 3 seconds
       setTimeout(() => this._initWebSocket(), 3000);
     };
   }
@@ -68,8 +69,7 @@ class RoomManager {
     }
   }
 
-  // ---- Public API (Async) ----
-  // Since WebSockets are asynchronous, we return Promises for actions that need a server response
+  // ---- Public API ----
 
   createRoom(playerName) {
     return new Promise((resolve, reject) => {
@@ -77,6 +77,7 @@ class RoomManager {
 
       const onCreated = (data) => {
         this.off('room_created', onCreated);
+        this.isHost = true;
         this._setSession(playerName, data.room.code);
         resolve(data.room);
       };
@@ -87,12 +88,13 @@ class RoomManager {
   }
 
   joinRoom(code, playerName) {
-    return new Promise((resolve, reject) => {
+    return new Promise((resolve) => {
       if (!this.connected) return resolve({ success: false, error: 'Not connected to server' });
 
       const onJoined = (data) => {
         this.off('room_joined', onJoined);
         this.off('join_error', onError);
+        this.isHost = false;
         this._setSession(playerName, data.room.code);
         resolve({ success: true, room: data.room });
       };
@@ -105,25 +107,29 @@ class RoomManager {
 
       this.on('room_joined', onJoined);
       this.on('join_error', onError);
-
       this._send('join_room', { code, playerName });
     });
+  }
+
+  startGame() {
+    this._send('start_game', {});
   }
 
   leaveRoom(code, playerName) {
     this._send('leave_room', { code, playerName });
     this.clearSession();
     this.cachedRoomState = null;
+    this.isHost = false;
   }
 
   submitScore(code, playerName, levelTimes, totalTime) {
     this._send('submit_score', { code, playerName, levelTimes, totalTime });
   }
 
-  // Because getLeaderboard, getRoomState, etc. were synchronous in app.js, 
-  // we either rely on cachedRoomState or refactor app.js. 
-  // For simplicity, we cache the room state and return it synchronously.
-  
+  sendLevelUpdate(level) {
+    this._send('level_update', { level });
+  }
+
   fetchRoomState(code) {
     this._send('get_room_state', { code });
   }
@@ -136,7 +142,7 @@ class RoomManager {
     const room = this.cachedRoomState;
     if (!room || !room.scores) return [];
 
-    const entries = Object.entries(room.scores)
+    return Object.entries(room.scores)
       .map(([name, data]) => ({
         name,
         totalTime: data.totalTime,
@@ -144,8 +150,6 @@ class RoomManager {
         completedAt: data.completedAt,
       }))
       .sort((a, b) => a.totalTime - b.totalTime);
-
-    return entries;
   }
 
   getPlayerCount() {
