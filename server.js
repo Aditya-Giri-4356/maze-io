@@ -139,7 +139,11 @@ wss.on('connection', (ws) => {
         if (room.hostName !== currentPlayerName) return; // only host can start
         
         room.status = 'playing';
-        broadcastToRoom(currentRoomCode, 'game_started', { code: currentRoomCode });
+        // Generate a random seed for this specific game session so it's unique each game, 
+        // but identical for everyone in the room.
+        room.gameSeed = Math.random().toString(36).substring(2, 10);
+        
+        broadcastToRoom(currentRoomCode, 'game_started', { code: currentRoomCode, gameSeed: room.gameSeed });
         broadcastRoomState(currentRoomCode);
       }
 

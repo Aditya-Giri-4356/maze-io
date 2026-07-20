@@ -273,8 +273,12 @@
       mobileControls.style.display = 'flex';
     }
 
+    // Get the unique game seed for this session from the room state
+    const roomState = window.roomManager.getRoomState();
+    const gameSeed = (roomState && roomState.gameSeed) ? roomState.gameSeed : currentRoomCode;
+
     // Create game engine
-    gameEngine = new GameEngine(mazeCanvas, currentPlayerName, currentRoomCode);
+    gameEngine = new GameEngine(mazeCanvas, currentPlayerName, gameSeed, currentRoomCode);
 
     gameEngine.onTimerUpdate = (elapsed) => {
       timerDisplay.textContent = formatTime(elapsed);

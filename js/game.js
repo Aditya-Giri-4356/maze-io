@@ -4,10 +4,11 @@
    ============================================================ */
 
 class GameEngine {
-  constructor(canvas, playerName, roomCode) {
+  constructor(canvas, playerName, gameSeed, roomCode) {
     this.canvas = canvas;
     this.ctx = canvas.getContext('2d');
     this.playerName = playerName;
+    this.gameSeed = gameSeed || roomCode; // Fallback for safety
     this.roomCode = roomCode;
 
     // Game state
@@ -56,10 +57,6 @@ class GameEngine {
     this._repeatAccel = 0.82;  // multiplier per repeat (speeds up)
     this._currentRepeatSpeed = this._repeatDelay;
 
-    // Room seed for deterministic mazes
-    const room = window.roomManager.getRoomState(roomCode);
-    this.roomSeed = room ? room.seed : 'default';
-
     // Smooth animation state
     this.visualPos = null;
     this.visualAngle = 0;
@@ -99,7 +96,7 @@ class GameEngine {
   _loadLevel(level) {
     this.currentLevel = level;
     this.isLevelComplete = false;
-    this.maze = window.MazeEngine.generateMazeForLevel(level, this.roomSeed);
+    this.maze = window.MazeEngine.generateMazeForLevel(level, this.gameSeed);
 
     // Set player start position
     const start = this.maze.getStartPosition();
