@@ -621,8 +621,9 @@ body {
 .leaderboard-table {
   width: 90%;
   max-width: 580px;
-  border-collapse: collapse;
-  border: 2px solid var(--table-border);
+  border-collapse: separate;
+  border-spacing: 0 12px; /* creates the gap for the 3D rows */
+  border: none;
 }
 
 .leaderboard-table thead th {
@@ -632,10 +633,25 @@ body {
   letter-spacing: 2px;
   text-transform: uppercase;
   padding: 16px 24px;
-  background-color: var(--table-header);
+  background-color: transparent;
   color: var(--table-header-fg);
-  border: 2px solid var(--table-border);
+  border: none;
+  border-bottom: 2px solid rgba(255, 255, 255, 0.2);
   text-align: center;
+}
+
+.leaderboard-table tbody tr {
+  background-color: var(--surface);
+  box-shadow: 0 6px 0 var(--table-border);
+  transition: transform 0.1s ease, box-shadow 0.1s ease, filter 0.1s ease;
+  cursor: pointer;
+  border-radius: 8px;
+}
+
+.leaderboard-table tbody tr:hover {
+  transform: translateY(4px);
+  box-shadow: 0 2px 0 var(--table-border);
+  filter: brightness(1.2);
 }
 
 .leaderboard-table tbody td {
@@ -644,13 +660,35 @@ body {
   font-weight: 700;
   padding: 18px 24px;
   text-align: center;
-  color: var(--fg);
-  border: 2px solid var(--table-border);
-  background-color: var(--bg);
+  color: inherit;
+  border: none;
+  border-top: 2px solid var(--table-border);
+  border-bottom: 2px solid var(--table-border);
+  background-color: transparent;
 }
 
-.leaderboard-table tbody tr:first-child td {
-  color: var(--accent);
+.leaderboard-table tbody td:first-child {
+  border-left: 2px solid var(--table-border);
+  border-radius: 8px 0 0 8px;
+}
+
+.leaderboard-table tbody td:last-child {
+  border-right: 2px solid var(--table-border);
+  border-radius: 0 8px 8px 0;
+}
+
+/* --- Rank Colors (Top 3) --- */
+.leaderboard-table tbody tr.rank-1 td {
+  color: #ff3333;
+}
+.leaderboard-table tbody tr.rank-2 td {
+  color: #ff6666;
+}
+.leaderboard-table tbody tr.rank-3 td {
+  color: #ff9999;
+}
+.leaderboard-table tbody tr.is-you td {
+  color: var(--accent) !important;
 }
 
 .room-code-bottom {

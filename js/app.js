@@ -447,13 +447,16 @@
     } else {
       entries.forEach((entry, idx) => {
         const row = document.createElement('tr');
+        if (idx < 3) {
+          row.classList.add(`rank-${idx + 1}`);
+        }
         row.innerHTML = `
           <td>${idx + 1}</td>
           <td>${entry.name}</td>
           <td>${formatTime(entry.totalTime)}</td>
         `;
         if (entry.name === currentPlayerName) {
-          row.style.color = 'var(--accent)';
+          row.classList.add('is-you');
         }
         leaderboardBody.appendChild(row);
       });
@@ -520,7 +523,11 @@
       }
 
       if (p.name === currentPlayerName) {
-        row.style.color = 'var(--accent)';
+        row.classList.add('is-you');
+      }
+
+      if (rank > 0 && rank <= 3) {
+        row.classList.add(`rank-${rank}`);
       }
 
       row.innerHTML = `
