@@ -130,6 +130,10 @@ class RoomManager {
     this._send('level_update', { level });
   }
 
+  syncTime(elapsedTime, level) {
+    this._send('sync_time', { elapsedTime, level });
+  }
+
   fetchRoomState(code) {
     this._send('get_room_state', { code });
   }

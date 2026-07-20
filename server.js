@@ -180,6 +180,28 @@ wss.on('connection', (ws) => {
         }
       }
       
+      else if (type === 'sync_time') {
+        if (!currentRoomCode || !currentPlayerName) return;
+        const room = rooms[currentRoomCode];
+        if (!room) return;
+        
+        const p = room.players.find(player => player.name === currentPlayerName);
+        if (p) {
+          p.liveTime = data.elapsedTime;
+          p.liveLevel = data.level;
+          // We don't broadcast immediately to save bandwidth, it will be pulled on the next state update,
+          // OR we can broadcastRoomState here. Wait, doing this every second for 40 players is a lot.
+          // Let's just update the state. The host can poll the state or we broadcast periodically.
+          // Wait! Host dashboard only re-renders on 'room_state_update' or 'score_update'.
+          // We should just broadcastRoomState here so the host dashboard gets it.
+          // 40 players * 1 msg/sec is 40 msgs/sec in Node, which is nothing. 
+          // But it multiplies by 40 clients (1600 msgs/sec). That might stutter local network.
+          // Actually, we'll just let the host request state, OR we throttle broadcastRoomState.
+          // Let's just broadcastRoomState, it's fine for a small game.
+          broadcastRoomState(currentRoomCode);
+        }
+      }
+      
       else if (type === 'get_room_state') {
         const { code } = data;
         const room = rooms[code ? code.toUpperCase() : ''];
@@ -201,7 +223,17 @@ wss.on('connection', (ws) => {
     if (!currentRoomCode || !currentPlayerName) return;
     const room = rooms[currentRoomCode];
     if (room) {
-      room.players = room.players.filter(p => p.name !== currentPlayerName);
+      if (room.state === 'playing') {
+        // If the game started, keep them in the roster but mark as DNF
+        const p = room.players.find(player => player.name === currentPlayerName);
+        if (p && !room.scores[currentPlayerName]) {
+          p.dnf = true;
+        }
+      } else {
+        // If in waiting room, remove them completely
+        room.players = room.players.filter(p => p.name !== currentPlayerName);
+      }
+      
       for (let client of room.clients) {
         if (client.ws === ws || client.playerName === currentPlayerName) {
           room.clients.delete(client);
@@ -211,7 +243,8 @@ wss.on('connection', (ws) => {
       broadcastToRoom(currentRoomCode, 'player_left', { code: currentRoomCode, playerName: currentPlayerName, playerCount: room.players.length });
       broadcastRoomState(currentRoomCode);
       
-      if (room.players.length === 0) {
+      // If no clients left, delete the room
+      if (room.clients.size === 0) {
         delete rooms[currentRoomCode];
       }
     }

@@ -283,8 +283,15 @@
     // Create game engine
     gameEngine = new GameEngine(mazeCanvas, currentPlayerName, gameSeed, currentRoomCode);
 
+    let lastSyncTime = 0;
     gameEngine.onTimerUpdate = (elapsed) => {
       timerDisplay.textContent = formatTime(elapsed);
+      
+      const now = Date.now();
+      if (now - lastSyncTime > 1000) {
+        lastSyncTime = now;
+        window.roomManager.syncTime(elapsed, gameEngine.currentLevel);
+      }
     };
 
     gameEngine.onLevelChange = (level) => {
@@ -482,22 +489,47 @@
 
     hostLeaderboardBody.innerHTML = '';
 
-    // Build a combined list: all players, sorted by finished (fastest first), then playing, then waiting
+    // Build a combined list: all players
     const players = room.players.map((p) => {
       const score = room.scores ? room.scores[p.name] : null;
       const level = room.playerLevels ? room.playerLevels[p.name] : null;
-      return { name: p.name, score, level };
+      
+      let liveLevel = p.liveLevel || 1;
+      let liveTime = p.liveTime || 0;
+      let avgTime = liveTime > 0 ? liveTime / liveLevel : 0;
+      
+      if (score) {
+        avgTime = score.totalTime / (score.levelTimes ? score.levelTimes.length : 1);
+      }
+      
+      return { 
+        name: p.name, 
+        score, 
+        level, 
+        dnf: p.dnf,
+        liveTime,
+        liveLevel,
+        avgTime
+      };
     });
 
-    // Sort: finished players by time first, then playing (by level desc), then waiting
+    // Sort: 
+    // 1. Finished players (by totalTime asc)
+    // 2. Active players (by liveLevel desc, then avgTime asc)
+    // 3. DNF players at bottom
     players.sort((a, b) => {
+      if (a.dnf && !b.dnf) return 1;
+      if (!a.dnf && b.dnf) return -1;
+      
       if (a.score && b.score) return a.score.totalTime - b.score.totalTime;
       if (a.score) return -1;
       if (b.score) return 1;
-      if (typeof a.level === 'number' && typeof b.level === 'number') return b.level - a.level;
-      if (typeof a.level === 'number') return -1;
-      if (typeof b.level === 'number') return 1;
-      return 0;
+      
+      if (a.liveLevel !== b.liveLevel) {
+        return b.liveLevel - a.liveLevel;
+      }
+      
+      return a.avgTime - b.avgTime;
     });
 
     let rank = 0;
@@ -505,28 +537,32 @@
       const row = document.createElement('tr');
       let statusText = 'WAITING';
       let timeText = '--';
+      let avgText = '--';
       let rankText = '--';
 
-      if (p.score) {
+      if (p.dnf) {
+        statusText = 'DNF';
+        row.style.color = 'var(--accent)';
+      } else if (p.score || p.level === 'finished') {
         rank++;
         rankText = rank;
         statusText = 'FINISHED';
-        timeText = formatTime(p.score.totalTime);
+        timeText = formatTime(p.score ? p.score.totalTime : 0);
+        avgText = formatTime(p.avgTime);
         row.style.color = '#22c55e';
-      } else if (p.level === 'finished') {
+      } else if (room.state === 'playing') {
         rank++;
         rankText = rank;
-        statusText = 'FINISHED';
-        row.style.color = '#22c55e';
-      } else if (typeof p.level === 'number') {
-        statusText = `LEVEL ${p.level}`;
+        statusText = `LEVEL ${p.liveLevel}`;
+        timeText = formatTime(p.liveTime);
+        avgText = formatTime(p.avgTime);
       }
 
       if (p.name === currentPlayerName) {
         row.classList.add('is-you');
       }
 
-      if (rank > 0 && rank <= 3) {
+      if (rank > 0 && rank <= 3 && !p.dnf) {
         row.classList.add(`rank-${rank}`);
       }
 
@@ -534,6 +570,7 @@
         <td>${rankText}</td>
         <td>${p.name.toUpperCase()}</td>
         <td>${statusText}</td>
+        <td>${avgText}</td>
         <td>${timeText}</td>
       `;
       hostLeaderboardBody.appendChild(row);
