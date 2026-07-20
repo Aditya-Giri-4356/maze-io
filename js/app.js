@@ -247,10 +247,10 @@
     startGameBtn.style.display = 'none';
 
     // Listen for host starting the game
-    const onGameStarted = () => {
+    const onGameStarted = (data) => {
       window.roomManager.off('game_started', onGameStarted);
       startGameBtn.style.display = ''; // restore for next time
-      startGame();
+      startGame(data ? data.gameSeed : null);
     };
     window.roomManager.on('game_started', onGameStarted);
 
@@ -263,7 +263,7 @@
   }
 
   // ---- Game Flow ----
-  function startGame() {
+  function startGame(providedGameSeed = null) {
     showScreen('game');
     loggedInAs.textContent = `LOGGED IN AS ${currentPlayerName.toUpperCase()}`;
     timerDisplay.textContent = '00.00.00';
@@ -273,9 +273,12 @@
       mobileControls.style.display = 'flex';
     }
 
-    // Get the unique game seed for this session from the room state
+    // Get the unique game seed. If provided via event, use that, else check room cache, else fallback to room code.
     const roomState = window.roomManager.getRoomState();
-    const gameSeed = (roomState && roomState.gameSeed) ? roomState.gameSeed : currentRoomCode;
+    let gameSeed = providedGameSeed;
+    if (!gameSeed) {
+      gameSeed = (roomState && roomState.gameSeed) ? roomState.gameSeed : currentRoomCode;
+    }
 
     // Create game engine
     gameEngine = new GameEngine(mazeCanvas, currentPlayerName, gameSeed, currentRoomCode);
