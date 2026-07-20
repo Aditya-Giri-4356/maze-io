@@ -31,6 +31,7 @@
   const hostRoomCode = document.getElementById('host-room-code');
   const hostLeaderboardBody = document.getElementById('host-leaderboard-body');
   const btnHostBack = document.getElementById('btn-host-back');
+  const btnHostStart = document.getElementById('btn-host-start');
 
   // Game
   const mazeCanvas = document.getElementById('maze-canvas');
@@ -441,6 +442,14 @@
       renderLeaderboard();
     };
     window.roomManager.on('room_state_update', onScoreUpdate);
+
+    // If host starts a new game while we are on the leaderboard
+    const onGameRestart = (data) => {
+      window.roomManager.off('room_state_update', onScoreUpdate);
+      window.roomManager.off('game_started', onGameRestart);
+      startGame(data ? data.gameSeed : null);
+    };
+    window.roomManager.on('game_started', onGameRestart);
   }
 
   function renderLeaderboard() {
@@ -620,8 +629,12 @@
     });
   }
 
-  // ---- Host Dashboard Back Button ----
+  // ---- Host Dashboard Buttons ----
   function initHostDashboard() {
+    btnHostStart.addEventListener('click', () => {
+      window.roomManager.startGame();
+    });
+
     btnHostBack.addEventListener('click', () => {
       window.roomManager.off('room_state_update', renderHostLeaderboard);
       window.roomManager.off('score_update', renderHostLeaderboard);

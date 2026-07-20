@@ -138,7 +138,15 @@ wss.on('connection', (ws) => {
         if (!room) return;
         if (room.hostName !== currentPlayerName) return; // only host can start
         
-        room.status = 'playing';
+        room.state = 'playing';
+        room.scores = {};
+        room.playerLevels = {};
+        room.players.forEach(p => {
+          delete p.dnf;
+          delete p.liveTime;
+          delete p.liveLevel;
+        });
+
         // Generate a random seed for this specific game session so it's unique each game, 
         // but identical for everyone in the room.
         room.gameSeed = Math.random().toString(36).substring(2, 10);
