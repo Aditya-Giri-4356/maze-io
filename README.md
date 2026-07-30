@@ -8,3 +8,6 @@ MAZE.IO is a real-time multiplayer maze racing game where you can compete agains
 - **Controls:** Use the Arrow Keys to move. Hold an arrow key to sprint.
 - **Reset:** Press `Tab` to instantly return to the start of the current level.
 - **Quit:** Press `Escape` to leave the game and disconnect from the room.
+
+Wanna play?
+https://tinyurl.com/mazeiogame 
