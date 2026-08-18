@@ -586,23 +586,73 @@
     });
   }
 
-  // ---- Mobile Controls ----
   function initMobileControls() {
     if (!mobileControls) return;
+
+    // Long-press repeat state — mirrors keyboard repeat in GameEngine
+    let repeatTimer = null;
+    let repeatSpeed = 150;       // starting ms between repeats
+    const REPEAT_MIN = 50;       // fastest repeat speed
+    const REPEAT_ACCEL = 0.82;   // multiplier per repeat (speeds up)
+    let activeDir = null;
+
+    function startRepeat(dir) {
+      stopRepeat();
+      activeDir = dir;
+      if (gameEngine) gameEngine.handleMobileInput(dir);
+      scheduleNext(dir);
+    }
+
+    function scheduleNext(dir) {
+      repeatTimer = setTimeout(() => {
+        if (activeDir !== dir) return;
+        if (gameEngine) gameEngine.handleMobileInput(dir);
+        repeatSpeed = Math.max(REPEAT_MIN, Math.floor(repeatSpeed * REPEAT_ACCEL));
+        scheduleNext(dir);
+      }, repeatSpeed);
+    }
+
+    function stopRepeat() {
+      if (repeatTimer) {
+        clearTimeout(repeatTimer);
+        repeatTimer = null;
+      }
+      activeDir = null;
+      repeatSpeed = 150;
+    }
 
     const buttons = mobileControls.querySelectorAll('button');
     buttons.forEach((btn) => {
       const dir = btn.dataset.direction;
       if (!dir) return;
 
+      // Touch: long-press with accelerating repeat
       btn.addEventListener('touchstart', (e) => {
         e.preventDefault();
-        if (gameEngine) gameEngine.handleMobileInput(dir);
+        startRepeat(dir);
+      }, { passive: false });
+
+      btn.addEventListener('touchend', (e) => {
+        e.preventDefault();
+        stopRepeat();
       });
 
-      btn.addEventListener('click', (e) => {
+      btn.addEventListener('touchcancel', () => {
+        stopRepeat();
+      });
+
+      // Mouse fallback (for desktop DevTools mobile simulation)
+      btn.addEventListener('mousedown', (e) => {
         e.preventDefault();
-        if (gameEngine) gameEngine.handleMobileInput(dir);
+        startRepeat(dir);
+      });
+
+      btn.addEventListener('mouseup', () => {
+        stopRepeat();
+      });
+
+      btn.addEventListener('mouseleave', () => {
+        stopRepeat();
       });
     });
   }

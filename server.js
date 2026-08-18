@@ -112,8 +112,8 @@ wss.on('connection', (ws) => {
           return;
         }
 
-        if (room.players.length >= 40) {
-          ws.send(JSON.stringify({ type: 'join_error', data: { error: 'Room is full! (max 40 players)' } }));
+        if (room.players.length >= 100) {
+          ws.send(JSON.stringify({ type: 'join_error', data: { error: 'Room is full! (max 100 players)' } }));
           return;
         }
 
@@ -189,6 +189,8 @@ wss.on('connection', (ws) => {
       }
       
       else if (type === 'sync_time') {
+        // Just update in-memory data — the periodic interval below handles broadcasting.
+        // This keeps traffic O(N) instead of O(N²) at 100 players.
         if (!currentRoomCode || !currentPlayerName) return;
         const room = rooms[currentRoomCode];
         if (!room) return;
@@ -197,16 +199,6 @@ wss.on('connection', (ws) => {
         if (p) {
           p.liveTime = data.elapsedTime;
           p.liveLevel = data.level;
-          // We don't broadcast immediately to save bandwidth, it will be pulled on the next state update,
-          // OR we can broadcastRoomState here. Wait, doing this every second for 40 players is a lot.
-          // Let's just update the state. The host can poll the state or we broadcast periodically.
-          // Wait! Host dashboard only re-renders on 'room_state_update' or 'score_update'.
-          // We should just broadcastRoomState here so the host dashboard gets it.
-          // 40 players * 1 msg/sec is 40 msgs/sec in Node, which is nothing. 
-          // But it multiplies by 40 clients (1600 msgs/sec). That might stutter local network.
-          // Actually, we'll just let the host request state, OR we throttle broadcastRoomState.
-          // Let's just broadcastRoomState, it's fine for a small game.
-          broadcastRoomState(currentRoomCode);
         }
       }
       
@@ -260,6 +252,17 @@ wss.on('connection', (ws) => {
     currentPlayerName = null;
   }
 });
+
+// Periodic live-state broadcast: push game state every 2s for active rooms
+// With 100 players this is 50 msgs/sec instead of 10,000 msgs/sec
+setInterval(() => {
+  for (const code in rooms) {
+    const room = rooms[code];
+    if (room.state === 'playing' && room.clients.size > 0) {
+      broadcastRoomState(code);
+    }
+  }
+}, 2000);
 
 // Cleanup old rooms periodically
 setInterval(() => {
