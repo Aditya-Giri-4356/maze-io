@@ -783,91 +783,357 @@ body {
   }
 }
 
-/* ---- Mobile / Small Screen ---- */
+/* ============================================================
+   MOBILE / PHONE — Complete Redesign
+   Immersive game view: maze + controls only, no clutter
+   ============================================================ */
 @media (max-width: 768px) {
-  /* Game header: tighter on mobile */
+
+  /* --------------------------------------------------------
+     Global Mobile: Theme Toggle
+     -------------------------------------------------------- */
+  .theme-toggle {
+    bottom: 14px;
+    right: 14px;
+  }
+
+  .theme-toggle svg {
+    width: 28px;
+    height: 28px;
+  }
+
+  /* --------------------------------------------------------
+     Login Screen
+     -------------------------------------------------------- */
+  #screen-login {
+    padding: 24px 20px;
+  }
+
+  #screen-login .logo-large {
+    margin-bottom: 28px;
+    font-size: clamp(44px, 13vw, 68px);
+  }
+
+  .login-form {
+    gap: 20px;
+    max-width: 100%;
+    padding: 0 4px;
+  }
+
+  .form-group label {
+    font-size: 10px;
+    letter-spacing: 2px;
+  }
+
+  .form-group input {
+    height: 46px;
+    font-size: 15px;
+    max-width: 100%;
+    border-radius: 24px;
+    padding: 0 20px;
+  }
+
+  .create-room-link {
+    font-size: 11px;
+    letter-spacing: 1.5px;
+    margin-top: 6px;
+  }
+
+  .disclaimer {
+    font-size: 9px;
+    letter-spacing: 1.5px;
+  }
+
+  /* --------------------------------------------------------
+     Room Creation Screen
+     -------------------------------------------------------- */
+  #screen-create-room {
+    padding: 24px 20px;
+  }
+
+  #screen-create-room .logo-large {
+    margin-bottom: 28px;
+    font-size: clamp(44px, 13vw, 68px);
+  }
+
+  .room-creation-content {
+    gap: 18px;
+  }
+
+  .room-code-value {
+    font-size: clamp(40px, 12vw, 60px) !important;
+    letter-spacing: 10px !important;
+  }
+
+  .room-code-label {
+    font-size: 10px !important;
+    letter-spacing: 2px;
+  }
+
+  .room-player-count {
+    font-size: 12px;
+  }
+
+  .btn-start-game {
+    font-size: 14px;
+    padding: 12px 36px;
+    letter-spacing: 2px;
+  }
+
+  .btn-back {
+    font-size: 11px;
+  }
+
+  /* --------------------------------------------------------
+     Game Screen — Immersive Mobile Layout
+     Strip away everything except header, maze, and d-pad
+     -------------------------------------------------------- */
+  #screen-game {
+    justify-content: flex-start;
+  }
+
+  /* Compact header: logo · level · timer in one tight row */
   .game-header {
-    padding: 12px 16px 0 16px;
+    padding: 8px 12px 0 12px;
+    gap: 0;
+  }
+
+  .game-header .logo-small {
+    font-size: clamp(16px, 4.5vw, 22px);
+  }
+
+  .level-display {
+    font-size: clamp(10px, 2.8vw, 14px);
+    letter-spacing: 2px;
   }
 
   .timer-display {
     min-width: auto;
+    font-size: clamp(18px, 5vw, 26px);
   }
 
-  /* Stack maze and sidebar vertically */
+  /* Game body fills everything between header and d-pad */
   .game-body {
     flex-direction: column;
     align-items: center;
+    flex: 1;
+    min-height: 0;
+    /* Reserve space so the maze doesn't render behind the fixed d-pad */
+    padding-bottom: 200px;
   }
 
+  /* Maze canvas area: fill all available vertical space */
   .maze-container {
-    padding: 6px;
-    flex: none;
+    flex: 1;
     width: 100%;
+    padding: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    max-height: none;   /* kill the old 55vh cap */
+    min-height: 0;
+  }
+
+  /* ---- HIDE on mobile during game ---- */
+  .players-sidebar {
+    display: none !important;
+  }
+
+  .game-footer {
+    display: none !important;
+  }
+
+  #screen-game .theme-toggle {
+    display: none !important;
+  }
+
+  /* ---- D-Pad: larger touch targets, safe bottom spacing ---- */
+  .mobile-controls {
+    bottom: max(12px, env(safe-area-inset-bottom, 12px));
+  }
+
+  .mobile-controls .dpad {
+    grid-template-columns: 58px 58px 58px;
+    grid-template-rows: 58px 58px 58px;
+    gap: 5px;
+  }
+
+  .mobile-controls button {
+    width: 58px;
+    height: 58px;
+    font-size: 22px;
+    border-radius: 14px;
+    border-width: 2px;
+    background: rgba(255, 255, 255, 0.06);
+  }
+
+  .mobile-controls button:active {
+    background: rgba(255, 255, 255, 0.3);
+    transform: scale(0.92);
+  }
+
+  /* --------------------------------------------------------
+     Host Dashboard — Mobile Redesign
+     -------------------------------------------------------- */
+  #screen-host {
+    padding: 24px 16px;
+    justify-content: flex-start;
+    gap: 0;
+    overflow-y: auto;
+  }
+
+  #screen-host .logo-large {
+    font-size: clamp(36px, 10vw, 52px);
+    margin-bottom: 8px;
+  }
+
+  .host-subtitle {
+    font-size: 9px;
+    letter-spacing: 3px;
+    margin-bottom: 2px;
+  }
+
+  .host-room-code {
+    font-size: 11px;
+    letter-spacing: 4px;
+    margin-bottom: 20px;
+  }
+
+  /* Stop the table wrapper from flex-stretching — natural height only */
+  .host-leaderboard-wrap {
+    max-width: 100%;
+    flex: none;
+    overflow-y: auto;
     max-height: 55vh;
   }
 
-  .players-sidebar {
-    width: 100%;
-    flex-direction: column;
-    padding: 8px 16px 0 16px;
-    max-height: 120px;
-    overflow-y: auto;
-    border-top: 1px solid var(--surface);
-  }
-
-  .sidebar-title {
-    margin-bottom: 6px;
-  }
-
-  .sidebar-player-list {
-    flex-direction: row;
-    flex-wrap: wrap;
-    gap: 4px;
-  }
-
-  .sidebar-player-list li {
-    font-size: 11px;
-    padding: 5px 10px;
-  }
-
-  /* Game footer: tighter */
-  .game-footer {
-    padding: 0 16px 10px 16px;
-  }
-
-  .logged-in-as {
+  /* Make table headers visible (they were black-on-black in dark mode) */
+  #screen-host .leaderboard-table thead th {
+    color: var(--fg);
     font-size: 10px;
+    padding: 10px 6px;
+    letter-spacing: 1.5px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.15);
+    opacity: 0.6;
   }
 
-  /* Login screen */
-  #screen-login .logo-large {
-    margin-bottom: 30px;
+  /* Hide the AVG TIME column (4th col) — too cramped for 5 columns */
+  #screen-host .leaderboard-table thead th:nth-child(4),
+  #screen-host .leaderboard-table tbody td:nth-child(4) {
+    display: none;
   }
 
-  .login-form {
-    gap: 24px;
+  #screen-host .leaderboard-table tbody td {
+    font-size: 11px;
+    padding: 10px 6px;
   }
 
-  /* Room creation */
-  .room-code-value {
-    font-size: clamp(40px, 10vw, 60px) !important;
-    letter-spacing: 10px !important;
+  #screen-host .leaderboard-table tbody tr {
+    box-shadow: 0 3px 0 var(--table-border);
   }
 
-  /* Host dashboard */
-  #screen-host {
-    padding: 20px 16px;
+  /* Rank column narrower */
+  #screen-host .leaderboard-table thead th:first-child {
+    width: 36px;
   }
 
-  .host-leaderboard-wrap {
-    max-width: 100%;
+  /* Hide theme toggle on host dashboard */
+  #screen-host .theme-toggle {
+    display: none !important;
   }
 
-  .leaderboard-table th,
-  .leaderboard-table td {
+  /* Buttons: full-width, stacked, with breathing room above */
+  .host-controls {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+    margin-top: 24px;
+    width: 100%;
+    padding: 0 4px;
+  }
+
+  .host-controls .btn-start-game {
+    width: 100%;
+    padding: 14px 24px;
+    font-size: 14px;
+    text-align: center;
+    border-radius: 28px;
+  }
+
+  .host-controls .btn-back {
+    width: 100%;
+    text-align: center;
+    font-size: 11px;
+    padding: 10px 0;
+  }
+
+  /* --------------------------------------------------------
+     Leaderboard Screen
+     -------------------------------------------------------- */
+  #screen-leaderboard {
+    padding: 24px 12px;
+  }
+
+  #screen-leaderboard .logo-large {
+    font-size: clamp(36px, 10vw, 52px);
+    margin-bottom: 16px;
+  }
+
+  .leaderboard-subtitle {
+    font-size: 11px;
+    letter-spacing: 3px;
+    margin-bottom: 18px;
+  }
+
+  .leaderboard-table {
+    width: 100%;
+  }
+
+  .leaderboard-table thead th {
     font-size: 12px;
-    padding: 10px 8px;
+    padding: 10px 6px;
+    letter-spacing: 1px;
+  }
+
+  .leaderboard-table tbody td {
+    font-size: 12px;
+    padding: 12px 6px;
+  }
+
+  .leaderboard-table tbody tr {
+    box-shadow: 0 4px 0 var(--table-border);
+  }
+
+  .room-code-bottom {
+    font-size: 10px;
+    margin-top: 24px;
+  }
+
+  .btn-play-again {
+    font-size: 12px;
+    margin-top: 12px;
+    padding: 10px 24px;
+  }
+
+  /* --------------------------------------------------------
+     Level-Complete / Countdown Overlays (tighter text)
+     -------------------------------------------------------- */
+  .level-overlay .overlay-title {
+    font-size: clamp(28px, 8vw, 48px);
+    text-align: center;
+    padding: 0 16px;
+  }
+
+  .level-overlay .overlay-time {
+    font-size: clamp(18px, 5vw, 28px);
+  }
+
+  .level-overlay .overlay-subtitle {
+    font-size: clamp(10px, 3vw, 14px);
+  }
+
+  .countdown-number {
+    font-size: clamp(64px, 18vw, 140px);
   }
 }
 
