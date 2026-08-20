@@ -1,5 +1,6 @@
 const express = require('express');
 const http = require('http');
+const https = require('https');
 const WebSocket = require('ws');
 const path = require('path');
 
@@ -11,6 +12,11 @@ const PORT = process.env.PORT || 3000;
 
 // Serve static files from the current directory
 app.use(express.static(path.join(__dirname, '')));
+
+// Health-check endpoint (Render uses this to verify the service is alive)
+app.get('/health', (req, res) => {
+  res.status(200).json({ status: 'ok', uptime: process.uptime(), rooms: Object.keys(rooms).length });
+});
 
 // In-memory room store
 const rooms = {};
@@ -141,6 +147,13 @@ wss.on('connection', (ws) => {
         room.state = 'playing';
         room.scores = {};
         room.playerLevels = {};
+
+        // Clean stale players from previous games (DNF'd / disconnected)
+        // Only keep players who currently have an active WebSocket connection
+        const connectedNames = new Set();
+        room.clients.forEach(c => connectedNames.add(c.playerName));
+        room.players = room.players.filter(p => connectedNames.has(p.name));
+
         room.players.forEach(p => {
           delete p.dnf;
           delete p.liveTime;
@@ -264,17 +277,45 @@ setInterval(() => {
   }
 }, 2000);
 
-// Cleanup old rooms periodically
+// Cleanup old rooms periodically (every 5 minutes)
 setInterval(() => {
   const now = Date.now();
-  const maxAge = 24 * 60 * 60 * 1000;
+  const maxAge = 2 * 60 * 60 * 1000; // 2 hours (reduced from 24h to save memory)
   for (const code in rooms) {
-    if (now - rooms[code].createdAt > maxAge) {
+    const room = rooms[code];
+    // Delete rooms with no connected clients immediately
+    if (room.clients.size === 0) {
+      delete rooms[code];
+      continue;
+    }
+    // Delete rooms older than maxAge
+    if (now - room.createdAt > maxAge) {
       delete rooms[code];
     }
   }
-}, 60 * 60 * 1000);
 
-server.listen(PORT, () => {
-  console.log(`MAZE.IO Server is running on http://localhost:${PORT}`);
+  // Cap total rooms at 50 — purge oldest if over limit
+  const codes = Object.keys(rooms);
+  if (codes.length > 50) {
+    codes
+      .sort((a, b) => rooms[a].createdAt - rooms[b].createdAt)
+      .slice(0, codes.length - 50)
+      .forEach(code => delete rooms[code]);
+  }
+}, 5 * 60 * 1000);
+
+// Bind to 0.0.0.0 so Render can route traffic to the container
+server.listen(PORT, '0.0.0.0', () => {
+  console.log(`MAZE.IO Server is running on http://0.0.0.0:${PORT}`);
 });
+
+// Self-ping to prevent Render free-tier spin-down (every 13 minutes)
+setInterval(() => {
+  const url = process.env.RENDER_EXTERNAL_URL || `http://localhost:${PORT}`;
+  const client = url.startsWith('https') ? https : http;
+  client.get(`${url}/health`, (res) => {
+    console.log(`[keep-alive] pinged ${url}/health — status ${res.statusCode}`);
+  }).on('error', (err) => {
+    console.log(`[keep-alive] ping failed: ${err.message}`);
+  });
+}, 13 * 60 * 1000);

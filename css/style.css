@@ -8,10 +8,7 @@
 
 @font-face {
   font-family: 'GULFS Display';
-  src: url('../fonts/GULFSDisplay.woff2') format('woff2'),
-       url('../fonts/GULFSDisplay.woff') format('woff'),
-       url('../fonts/GULFSDisplay.ttf') format('truetype'),
-       url('../fonts/GULFSDisplay.otf') format('opentype');
+  src: url('../fonts/GULFSDisplay.ttf') format('truetype');
   font-weight: normal;
   font-style: normal;
   font-display: swap;
@@ -414,6 +411,13 @@ body {
   gap: 24px;
   margin-top: 24px;
   width: 100%;
+}
+
+/* Fix host dashboard table headers — visible in both themes */
+#screen-host .leaderboard-table thead th {
+  color: var(--fg);
+  opacity: 0.6;
+  border-bottom: 2px solid rgba(128, 128, 128, 0.3);
 }
 
 /* ============================================================

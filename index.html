@@ -193,5 +193,16 @@
   <script src="js/game.js?v=2"></script>
   <script src="js/app.js?v=2"></script>
 
+  <!-- Hidden keep-alive pinger (prevents Render free-tier spin-down) -->
+  <div id="keep-alive" style="position:absolute;width:0;height:0;overflow:hidden;pointer-events:none;opacity:0;" aria-hidden="true"></div>
+  <script>
+    (function(){
+      setInterval(function(){
+        fetch('/health').catch(function(){});
+      }, 10 * 60 * 1000);
+    })();
+  </script>
+
 </body>
 </html>
+
