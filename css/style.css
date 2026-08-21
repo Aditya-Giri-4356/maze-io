@@ -375,23 +375,22 @@ body {
 
 .host-header {
   display: flex;
-  align-items: baseline;
-  justify-content: space-between;
+  flex-direction: column;
+  align-items: center;
   width: 100%;
   max-width: 900px;
   margin: 0 auto 24px auto;
-  gap: 16px;
-  flex-wrap: wrap;
+  gap: 4px;
 }
 
 .host-header .logo-large {
-  margin-bottom: 0;
+  margin-bottom: 8px;
 }
 
 .host-meta {
   display: flex;
   flex-direction: column;
-  align-items: flex-end;
+  align-items: center;
   gap: 2px;
 }
 
@@ -471,12 +470,14 @@ body {
 /* Fix host dashboard table headers — visible in both themes */
 #screen-host .leaderboard-table {
   width: 100%;
+  margin: 0 auto;
 }
 
 #screen-host .leaderboard-table thead th {
   color: var(--fg);
   opacity: 0.6;
   border-bottom: 2px solid rgba(128, 128, 128, 0.3);
+  text-align: center;
 }
 
 /* --- Progress Bar (in table cell) --- */
