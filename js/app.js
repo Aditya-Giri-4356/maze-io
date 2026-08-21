@@ -32,6 +32,9 @@
   const hostLeaderboardBody = document.getElementById('host-leaderboard-body');
   const btnHostBack = document.getElementById('btn-host-back');
   const btnHostStart = document.getElementById('btn-host-start');
+  const hostStatPlayers = document.getElementById('host-stat-players');
+  const hostStatFinished = document.getElementById('host-stat-finished');
+  const hostStatTimer = document.getElementById('host-stat-timer');
 
   // Game
   const mazeCanvas = document.getElementById('maze-canvas');
@@ -61,6 +64,8 @@
   let gameEngine = null;
   let currentRoomCode = '';
   let currentPlayerName = '';
+  let hostTimerInterval = null;
+  let hostGameStartTime = 0;
 
   // ---- Screen Management ----
   function showScreen(name) {
@@ -485,6 +490,16 @@
   function showHostDashboard() {
     showScreen('host');
     hostRoomCode.textContent = `ROOM: ${currentRoomCode}`;
+    
+    // Start the host game timer
+    hostGameStartTime = Date.now();
+    if (hostTimerInterval) clearInterval(hostTimerInterval);
+    hostTimerInterval = setInterval(() => {
+      if (hostStatTimer) {
+        hostStatTimer.textContent = formatTime(Date.now() - hostGameStartTime);
+      }
+    }, 100);
+
     renderHostLeaderboard();
 
     // Listen for live updates
@@ -496,7 +511,7 @@
     const room = window.roomManager.getRoomState();
     if (!room || !hostLeaderboardBody) return;
 
-    hostLeaderboardBody.innerHTML = '';
+    const totalLevels = room.totalLevels || 5;
 
     // Build a combined list: all players
     const players = room.players.map((p) => {
@@ -518,9 +533,16 @@
         dnf: p.dnf,
         liveTime,
         liveLevel,
-        avgTime
+        avgTime,
+        totalLevels
       };
     });
+
+    // Update stat cards
+    const totalPlayers = players.length;
+    const finishedCount = players.filter(p => p.score || p.level === 'finished').length;
+    if (hostStatPlayers) hostStatPlayers.textContent = totalPlayers;
+    if (hostStatFinished) hostStatFinished.textContent = `${finishedCount}/${totalPlayers}`;
 
     // Sort: 
     // 1. Finished players (by totalTime asc)
@@ -541,6 +563,7 @@
       return a.avgTime - b.avgTime;
     });
 
+    hostLeaderboardBody.innerHTML = '';
     let rank = 0;
     players.forEach((p) => {
       const row = document.createElement('tr');
@@ -548,9 +571,13 @@
       let timeText = '--';
       let avgText = '--';
       let rankText = '--';
+      let progressLevel = 0;
+      let progressClass = '';
 
       if (p.dnf) {
         statusText = 'DNF';
+        progressLevel = p.liveLevel || 0;
+        progressClass = 'dnf';
         row.style.color = 'var(--accent)';
       } else if (p.score || p.level === 'finished') {
         rank++;
@@ -558,6 +585,8 @@
         statusText = 'FINISHED';
         timeText = formatTime(p.score ? p.score.totalTime : 0);
         avgText = formatTime(p.avgTime);
+        progressLevel = totalLevels;
+        progressClass = 'done';
         row.style.color = '#22c55e';
       } else if (room.state === 'playing') {
         rank++;
@@ -565,6 +594,7 @@
         statusText = `LEVEL ${p.liveLevel}`;
         timeText = formatTime(p.liveTime);
         avgText = formatTime(p.avgTime);
+        progressLevel = Math.max(0, p.liveLevel - 1);
       }
 
       if (p.name === currentPlayerName) {
@@ -575,9 +605,21 @@
         row.classList.add(`rank-${rank}`);
       }
 
+      // Build progress bar segments
+      let progressHTML = '<div class="progress-bar">';
+      for (let i = 0; i < totalLevels; i++) {
+        if (i < progressLevel) {
+          progressHTML += `<div class="seg filled ${progressClass}"></div>`;
+        } else {
+          progressHTML += '<div class="seg"></div>';
+        }
+      }
+      progressHTML += '</div>';
+
       row.innerHTML = `
         <td>${rankText}</td>
         <td>${p.name.toUpperCase()}</td>
+        <td>${progressHTML}</td>
         <td>${statusText}</td>
         <td>${avgText}</td>
         <td>${timeText}</td>
@@ -621,7 +663,7 @@
       repeatSpeed = 150;
     }
 
-    const buttons = mobileControls.querySelectorAll('button');
+    const buttons = mobileControls.querySelectorAll('button[data-direction]');
     buttons.forEach((btn) => {
       const dir = btn.dataset.direction;
       if (!dir) return;
@@ -655,6 +697,20 @@
         stopRepeat();
       });
     });
+
+    // Reset button (center of D-pad)
+    const resetBtn = document.getElementById('btn-mobile-reset');
+    if (resetBtn) {
+      resetBtn.addEventListener('touchstart', (e) => {
+        e.preventDefault();
+        if (gameEngine) gameEngine.resetToStart();
+      }, { passive: false });
+
+      resetBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        if (gameEngine) gameEngine.resetToStart();
+      });
+    }
   }
 
   // ---- Start Game Button (Room Creation) ----
@@ -682,12 +738,18 @@
   // ---- Host Dashboard Buttons ----
   function initHostDashboard() {
     btnHostStart.addEventListener('click', () => {
+      // Reset game timer for new game
+      hostGameStartTime = Date.now();
       window.roomManager.startGame();
     });
 
     btnHostBack.addEventListener('click', () => {
       window.roomManager.off('room_state_update', renderHostLeaderboard);
       window.roomManager.off('score_update', renderHostLeaderboard);
+      if (hostTimerInterval) {
+        clearInterval(hostTimerInterval);
+        hostTimerInterval = null;
+      }
       if (currentRoomCode) {
         window.roomManager.leaveRoom(currentRoomCode, currentPlayerName);
         currentRoomCode = '';

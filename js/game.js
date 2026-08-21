@@ -146,15 +146,7 @@ class GameEngine {
 
     if (key === 'Tab') {
       e.preventDefault();
-      const start = this.maze.getStartPosition();
-      this.playerPos = { col: start.col, row: start.row };
-      
-      // Instantly reset visual position and angle
-      const pos = this.maze.getPlayerPosition(start.col, start.row, this.canvasSize);
-      this.visualPos.x = pos.x;
-      this.visualPos.y = pos.y;
-      this.facingAngle = 0;
-      this.visualAngle = 0;
+      this.resetToStart();
       return;
     }
 
@@ -215,6 +207,20 @@ class GameEngine {
 
     const keyMap = { up: 'ArrowUp', down: 'ArrowDown', left: 'ArrowLeft', right: 'ArrowRight' };
     this._doMove(keyMap[direction]);
+  }
+
+  // Reset player to the start of the current maze level
+  resetToStart() {
+    if (this.isLevelComplete || this.isGameComplete) return;
+    const start = this.maze.getStartPosition();
+    this.playerPos = { col: start.col, row: start.row };
+
+    // Instantly reset visual position and angle
+    const pos = this.maze.getPlayerPosition(start.col, start.row, this.canvasSize);
+    this.visualPos.x = pos.x;
+    this.visualPos.y = pos.y;
+    this.facingAngle = 0;
+    this.visualAngle = 0;
   }
 
   // Arrow keys map directly: Up=N, Down=S, Left=W, Right=E
